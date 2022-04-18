@@ -30,6 +30,7 @@ from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageFont
 
 from .query_integral_image import query_integral_image
 from .tokenization import process_tokens, unigrams_and_bigrams, word_tokenize
+from .processing import plot_TSNE, embed_w2v
 
 FILE = os.path.dirname(__file__)
 FONT_PATH = os.environ.get('FONT_PATH', os.path.join(FILE, 'DroidSansMono.ttf'))
@@ -399,6 +400,8 @@ class WordCloud(object):
                 maxX = ind[0]
               if ind[1] > maxY:
                 maxY = ind[1]
+        else:
+            tsne_plot = plot_TSNE(embed_w2v(frequencies))
         
         # make sure frequencies are sorted and normalized
         frequencies = sorted(frequencies.items(), key=itemgetter(1), reverse=True)
