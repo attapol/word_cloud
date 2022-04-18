@@ -8,34 +8,32 @@
 
 from __future__ import division
 
-import base64
-import colorsys
+import warnings
+from random import Random
 import io
 import os
 import re
+import base64
 import sys
-import warnings
-from operator import itemgetter
-from random import Random
-from xml.sax import saxutils
-from collections import Counter
-
-import gensim
+import colorsys
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from k_means_constrained import KMeansConstrained
-from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageFont
+from operator import itemgetter
+from xml.sax import saxutils
+
+from PIL import Image
+from PIL import ImageColor
+from PIL import ImageDraw
+from PIL import ImageFilter
+from PIL import ImageFont
 
 from .query_integral_image import query_integral_image
-from .tokenization import process_tokens, unigrams_and_bigrams, word_tokenize
+from .tokenization import unigrams_and_bigrams, process_tokens
 
 FILE = os.path.dirname(__file__)
 FONT_PATH = os.environ.get('FONT_PATH', os.path.join(FILE, 'DroidSansMono.ttf'))
 STOPWORDS = set(map(str.strip, open(os.path.join(FILE, 'stopwords')).readlines()))
-STOPWORDS_TH = set(map(str.strip, open(os.path.join(FILE, 'thstopwords')).readlines()))
-
 
 
 class IntegralOccupancyMap(object):
@@ -85,6 +83,7 @@ class colormap_color_func(object):
 
     """
     def __init__(self, colormap):
+        import matplotlib.pyplot as plt
         self.colormap = plt.cm.get_cmap(colormap)
 
     def __call__(self, word, font_size, position, orientation,
@@ -321,7 +320,6 @@ class WordCloud(object):
         self.color_func = color_func or colormap_color_func(colormap)
         self.max_words = max_words
         self.stopwords = stopwords if stopwords is not None else STOPWORDS
-        self.stopwordsth = stopwords if stopwords is not None else STOPWORDS_TH
         self.min_font_size = min_font_size
         self.font_step = font_step
         self.regexp = regexp
@@ -579,7 +577,7 @@ class WordCloud(object):
         
         return self
 
-    def process_text(self, text, lang='EN', most_common='60'):
+    def process_text(self, text):
         """Splits a long text into words, eliminates the stopwords.
 
         Parameters
@@ -600,43 +598,34 @@ class WordCloud(object):
         There are better ways to do word tokenization, but I don't want to
         include all those things.
         """
-        if lang == 'TH':
-            # TODO
-            stopwords = set([i for i in self.stopwordsth])
-            words = word_tokenize(text)
-            words = [word for word in words if word not in stopwords and word.isnumeric() == False]
-            word_counter = Counter((word for word in words)).most_common(most_common)
-            word_counts = dict(word_counter)
 
-        elif lang == 'EN':
+        flags = (re.UNICODE if sys.version < '3' and type(text) is unicode  # noqa: F821
+                 else 0)
+        pattern = r"\w[\w']*" if self.min_word_length <= 1 else r"\w[\w']+"
+        regexp = self.regexp if self.regexp is not None else pattern
 
-            flags = (re.UNICODE if sys.version < '3' and type(text) is unicode  # noqa: F821
-                    else 0)
-            pattern = r"\w[\w']*" if self.min_word_length <= 1 else r"\w[\w']+"
-            regexp = self.regexp if self.regexp is not None else pattern
+        words = re.findall(regexp, text, flags)
+        # remove 's
+        words = [word[:-2] if word.lower().endswith("'s") else word
+                 for word in words]
+        # remove numbers
+        if not self.include_numbers:
+            words = [word for word in words if not word.isdigit()]
+        # remove short words
+        if self.min_word_length:
+            words = [word for word in words if len(word) >= self.min_word_length]
 
-            words = re.findall(regexp, text, flags)
-            # remove 's
-            words = [word[:-2] if word.lower().endswith("'s") else word
-                    for word in words]
-            # remove numbers
-            if not self.include_numbers:
-                words = [word for word in words if not word.isdigit()]
-            # remove short words
-            if self.min_word_length:
-                words = [word for word in words if len(word) >= self.min_word_length]
-
-            stopwords = set([i.lower() for i in self.stopwords])
-            if self.collocations:
-                word_counts = unigrams_and_bigrams(words, stopwords, self.normalize_plurals, self.collocation_threshold)
-            else:
-                # remove stopwords
-                words = [word for word in words if word.lower() not in stopwords]
-                word_counts, _ = process_tokens(words, self.normalize_plurals)
+        stopwords = set([i.lower() for i in self.stopwords])
+        if self.collocations:
+            word_counts = unigrams_and_bigrams(words, stopwords, self.normalize_plurals, self.collocation_threshold)
+        else:
+            # remove stopwords
+            words = [word for word in words if word.lower() not in stopwords]
+            word_counts, _ = process_tokens(words, self.normalize_plurals)
 
         return word_counts
 
-    def generate_from_text(self, text, lang='EN', tsne_plot=None):
+    def generate_from_text(self, text):
         """Generate wordcloud from text.
 
         The input "text" is expected to be a natural text. If you pass a sorted
@@ -653,12 +642,11 @@ class WordCloud(object):
         -------
         self
         """
-        words = self.process_text(text, lang)
-        ###
-        self.generate_from_frequencies(words, tsne_plot)
+        words = self.process_text(text)
+        self.generate_from_frequencies(words)
         return self
 
-    def generate(self, text, lang='EN', tsne_plot=None):
+    def generate(self, text):
         """Generate wordcloud from text.
 
         The input "text" is expected to be a natural text. If you pass a sorted
@@ -673,7 +661,7 @@ class WordCloud(object):
         -------
         self
         """
-        return self.generate_from_text(text, lang, tsne_plot)
+        return self.generate_from_text(text)
 
     def _check_generated(self):
         """Check if ``layout_`` was computed, otherwise raise error."""
@@ -1078,80 +1066,7 @@ class WordCloud(object):
 
         return Image.fromarray(ret)
 
-
-
-def generate_cluster_by_kmeans(focus_model, NUM_CLUSTERS, size_min, size_max):
-    X = focus_model[focus_model.vocab]
-    clf = KMeansConstrained(
-        n_clusters=NUM_CLUSTERS,
-        size_min=size_min,
-        size_max=size_max,
-        random_state=0
-    )
-    clf.fit_predict(X)
-    #array([0, 0, 0, 1, 1, 1], dtype=int32)
-    clf.cluster_centers_
-    #array([[ 1.,  2.],
-    #      [ 4.,  2.]])
-    grouped = clf.labels_.tolist()
-    return grouped
-
-
-def generate_freq(focus_w_list, word_count_dic, focus_model, NUM_CLUSTERS, size_min, size_max):
-    df = pd.DataFrame(data={'word': focus_w_list,'cluster':generate_cluster_by_kmeans(focus_model,NUM_CLUSTERS,size_min,size_max)})
-    df['word_count'] = df['word'].map(word_count_dic)
-    # dic = {}
-    k_means_freq = []
-    for i in range(NUM_CLUSTERS):
-        clus_i= df.loc[df['cluster'] == i]
-        clus_i['total'] = clus_i['word_count'].sum()
-        clus_i_dict = {}
-        for index, row in clus_i.iterrows():
-            clus_i_dict[row['word']] = row['word_count']/row['total']
-        sorted_dict_i = sorted(clus_i_dict.items(), key=lambda item: item[1],reverse=True)[:10]
-        print(sorted_dict_i)
-        lst = []
-        for k,v in sorted_dict_i:
-            lst.append((k,v))
-        k_means_freq.append((i,lst))
-    return k_means_freq
-
-def generate_cloud(font_path, freq, max_font, fix_width, fix_height):
-    lis = []
-    topics2 = freq
-    clouds = []
-    for i in range(6):
-        cloud = WordCloud(font_path = font_path,stopwords=gensim.parsing.preprocessing.STOPWORDS,
-                        background_color='white',
-                        width=fix_width,
-                        height=fix_height,
-                        max_words=20,
-                        colormap='tab10',
-                        color_func=lambda *args, **kwargs: "black",
-                        prefer_horizontal=1.0)
-        clouds.append(cloud)
-
-    fig2, axes2 = plt.subplots(2,3, figsize=(32,18), sharex=True, sharey=True)
-
-    for i, ax in enumerate(axes2.flatten()):
-        fig2.add_subplot(ax)
-            
-        fig2.tight_layout(rect=[0, 0.03, 1, 0.95])
-            
-        topic_words = dict(topics2[i][1])
-        clouds[i].generate_from_frequencies(topic_words, max_font_size= max_font) # set topic
-        lis.append(clouds[i])
-        plt.gca().imshow(clouds[i],aspect="auto",interpolation = "bilinear")  # blur it right here
-        plt.gca().axis('off')
-
-    plt.subplots_adjust(wspace=0, hspace=0)
-    plt.axis('off')
-    plt.margins(x=0, y=0)
-    plt.tight_layout()
-    plt.figure(figsize=(32,18))
-    plt.show()
-    return lis
-
+    
 ## from "examples/colored_by_group.py"
 
 class SimpleGroupedColorFunc(object):
