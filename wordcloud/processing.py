@@ -33,7 +33,7 @@ def embed_w2v(word_counts):
     return w2vmodel
 
 
-def plot_TSNE(model,labels=None, filename=None, axis_lims=None):
+def plot_TSNE(model,labels=None):
 
     tokens = []
     if labels == None:
@@ -45,8 +45,14 @@ def plot_TSNE(model,labels=None, filename=None, axis_lims=None):
       for word in labels:
           tokens.append(model[word])
 
-    tsne_model = TSNE(n_components=2, init='pca', n_iter=2250,perplexity=7,early_exaggeration = 12,
-                      random_state=26,learning_rate=210)
+    if lang=='TH':
+      tsne_model = TSNE(n_components=2, init='pca', n_iter=2250, perplexity=7, early_exaggeration = 12,
+                        random_state=26,learning_rate=210)
+    else:
+      tsne_model = TSNE(n_components=2, init='pca', n_iter=1000, perplexity=40, early_exaggeration = 12,
+                        random_state=23,learning_rate=200)
+    
+
     new_values = tsne_model.fit_transform(tokens)
 
     x = []
@@ -75,20 +81,9 @@ def plot_TSNE(model,labels=None, filename=None, axis_lims=None):
         x.append(value[0] + x_fab)
         y.append(value[1] + y_fab)
 
-    # plt.figure(figsize=(16, 16)) 
     dic = {}
-    # prop = fm.FontProperties(fname=f'/content/ChulaCharasNewReg.ttf',size=20)
     for i in range(len(x)):
         dic[labels[i]] = (x[i],y[i])
-        # plt.scatter(x[i],y[i])
-        # plt.annotate(labels[i],
-        #              fontproperties=prop,
-        #              xy=(x[i], y[i]),
-        #              xytext=(5, 2),
-        #              textcoords='offset points',
-        #              ha='right',
-        #              va='bottom',)
-    # plt.show()
     return dic
 
 
