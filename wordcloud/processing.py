@@ -33,7 +33,7 @@ def embed_w2v(word_counts):
     return w2vmodel
 
 
-def plot_TSNE(model,labels=None):
+def plot_TSNE(model,labels=None, lang='TH'):
 
     tokens = []
     if labels == None:
