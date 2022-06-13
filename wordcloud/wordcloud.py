@@ -1,5 +1,5 @@
 # coding=utf-8
-# Author: Andreas Christian Mueller <t3kcit@gmail.com>
+# derived from: amueller/wordcloud, Author: Andreas Christian Mueller <t3kcit@gmail.com>
 #
 # (c) 2012
 # Modified by: Paul Nechifor <paul@nechifor.net>
@@ -28,9 +28,9 @@ import pandas as pd
 from k_means_constrained import KMeansConstrained
 from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageFont
 
-from .query_integral_image import query_integral_image
-from .tokenization import process_tokens, unigrams_and_bigrams, word_tokenize
-from .processing import plot_TSNE, embed_w2v
+from query_integral_image import query_integral_image
+from tokenization import process_tokens, unigrams_and_bigrams, word_tokenize
+from processing import plot_TSNE, embed_w2v
 
 FILE = os.path.dirname(__file__)
 FONT_PATH = os.environ.get('FONT_PATH', os.path.join(FILE, 'DroidSansMono.ttf'))
@@ -126,11 +126,6 @@ def get_single_color_func(color):
           numbers.
 
         """
-#         if random_state is None:
-#             random_state = Random()
-#         r, g, b = colorsys.hsv_to_rgb(h, s, random_state.uniform(0.2, 1))
-#         return 'rgb({:.0f}, {:.0f}, {:.0f})'.format(r * rgb_max, g * rgb_max,
-#                                                     b * rgb_max)
         return 'rgb({:.0f}, {:.0f}, {:.0f})'.format(old_r, old_g,
                                                     old_b)
     return single_color_func
@@ -392,16 +387,16 @@ class WordCloud(object):
         """
         
         ## edit
-        if tsne_plot != None:
-            maxX = 0
-            maxY = 0
-            for ind in tsne_plot.values():
-              if ind[0] > maxX:
-                maxX = ind[0]
-              if ind[1] > maxY:
-                maxY = ind[1]
-        else:
+        if tsne_plot == None:
             tsne_plot = plot_TSNE(embed_w2v(frequencies))
+
+        maxX = 0
+        maxY = 0
+        for ind in tsne_plot.values():
+            if ind[0] > maxX:
+                maxX = ind[0]
+            if ind[1] > maxY:
+                maxY = ind[1]
         
         # make sure frequencies are sorted and normalized
         frequencies = sorted(frequencies.items(), key=itemgetter(1), reverse=True)
@@ -604,7 +599,6 @@ class WordCloud(object):
         include all those things.
         """
         if lang == 'TH':
-            # TODO
             stopwords = set([i for i in self.stopwordsth])
             words = word_tokenize(text)
             words = [word for word in words if word not in stopwords and word.isnumeric() == False]
@@ -643,14 +637,9 @@ class WordCloud(object):
         """Generate wordcloud from text.
 
         The input "text" is expected to be a natural text. If you pass a sorted
-        list of words, words will appear in your output twice. To remove this
-        duplication, set ``collocations=False``.
+        list of words, words will appear in your output twice.
 
         Calls process_text and generate_from_frequencies.
-
-        ..versionchanged:: 1.2.2
-            Argument of generate_from_frequencies() is not return of
-            process_text() any more.
 
         Returns
         -------
@@ -1084,7 +1073,7 @@ class WordCloud(object):
 
 
 def generate_cluster_by_kmeans(focus_model, NUM_CLUSTERS, size_min, size_max):
-    X = focus_model[focus_model.vocab]
+    X = focus_model[focus_model.key_to_index]
     clf = KMeansConstrained(
         n_clusters=NUM_CLUSTERS,
         size_min=size_min,
@@ -1092,10 +1081,7 @@ def generate_cluster_by_kmeans(focus_model, NUM_CLUSTERS, size_min, size_max):
         random_state=0
     )
     clf.fit_predict(X)
-    #array([0, 0, 0, 1, 1, 1], dtype=int32)
     clf.cluster_centers_
-    #array([[ 1.,  2.],
-    #      [ 4.,  2.]])
     grouped = clf.labels_.tolist()
     return grouped
 

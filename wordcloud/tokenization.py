@@ -140,12 +140,7 @@ def process_tokens(words, normalize_plurals=True):
     return fused_cases, standard_cases
 
 
-def word_tokenize(
-    text: str,
-    custom_dict: Trie = None,
-    # engine: str = DEFAULT_WORD_TOKENIZE_ENGINE,
-    keep_whitespace: bool = True,
-) -> List[str]:
+def word_tokenize(text: str, custom_dict: Trie = None, keep_whitespace: bool = True):
 
     """
     Word tokenizer.
@@ -160,7 +155,6 @@ def word_tokenize(
                                  for end of phrase in Thai.
                                  Otherwise, whitespaces are omitted.
     :return: list of words
-    :rtype: list[str]
     """
 
     if not text or not isinstance(text, str):

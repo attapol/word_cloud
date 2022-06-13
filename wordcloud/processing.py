@@ -16,34 +16,43 @@ from pythainlp import word_vector
 
 
 def embed_w2v(word_counts):
+    """
+    return: DataFrame of word vector, row index = vocab
+    """
 
     words = word_counts.keys()
     model = word_vector.get_model()
     thai2dict = {}
-    for word in model.index2word:
+    for word in words:
+      if word in model.index_to_key:
         thai2dict[word] = model[word]
     thai2vec = pd.DataFrame.from_dict(thai2dict,orient='index')
-    wn_emb = thai2vec.loc[words]
-    wn_emb.to_csv('tmp_emb.txt', header=None, index=True, sep=' ', mode='a')
-    glove_file = datapath('tmp_emb.txt')
-    tmp_file = get_tmpfile("tmp_word2vec.txt")
-    _ = glove2word2vec(glove_file, tmp_file)
-    w2vmodel = KeyedVectors.load_word2vec_format(tmp_file)
-
-    return w2vmodel
+    # wn_emb = thai2vec.loc[words]
+    # wn_emb.to_csv('tmp_emb.txt', header=None, index=True, sep=' ', mode='a')
+    # glove_file = datapath('tmp_emb.txt')
+    # tmp_file = get_tmpfile("tmp_word2vec.txt")
+    # _ = glove2word2vec(glove_file, tmp_file)
+    # w2vmodel = KeyedVectors.load_word2vec_format(tmp_file)
+    # return w2vmodel
+    return thai2vec
 
 
 def plot_TSNE(model,labels=None, lang='TH'):
+    """
+    model is a DataFrame whose row index is the vocab
+    """
+    # tokens = []
+    # if labels == None:
+    #   labels = []
+    #   for word in model.index:
+    #       tokens.append(model.loc[word])
+    #       labels.append(word)
+    # else:
+    #   for word in labels:
+    #       tokens.append(model[word])
+    labels = model.index.tolist()
+    tokens = model.to_numpy()
 
-    tokens = []
-    if labels == None:
-      labels = []
-      for word in model.wv.vocab:
-          tokens.append(model[word])
-          labels.append(word)
-    else:
-      for word in labels:
-          tokens.append(model[word])
 
     if lang=='TH':
       tsne_model = TSNE(n_components=2, init='pca', n_iter=2250, perplexity=7, early_exaggeration = 12,
