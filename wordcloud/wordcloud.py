@@ -412,7 +412,7 @@ class WordCloud(object):
         """
         return self.generate_from_frequencies(frequencies)
 
-    def generate_from_frequencies(self, frequencies, max_font_size=None, tsne_plot=None):  # noqa: C901
+    def generate_from_frequencies(self, frequencies, max_font_size=None, tsne_plot=None, lang='TH'):  # noqa: C901
         """Create a word_cloud from words and frequencies.
 
         Parameters
@@ -431,7 +431,7 @@ class WordCloud(object):
         
         ## edit
         if tsne_plot == None:
-            tsne_plot = plot_TSNE(embed_w2v(frequencies))
+            tsne_plot = plot_TSNE(embed_w2v(frequencies), lang=lang)
 
         maxX = 0
         maxY = 0
