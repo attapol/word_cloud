@@ -106,29 +106,72 @@ def get_single_color_func(color):
     >>> color_func2 = get_single_color_func('#00b4d2')
     """
     old_r, old_g, old_b = ImageColor.getrgb(color)
-#     rgb_max = 255.
-#     h, s, v = colorsys.rgb_to_hsv(old_r / rgb_max, old_g / rgb_max,
-#                                   old_b / rgb_max)
 
-    def single_color_func(word=None, font_size=None, position=None,
-                          orientation=None, font_path=None, random_state=None):
-        """Random color generation.
+    return 'rgb({:.0f}, {:.0f}, {:.0f})'.format(old_r, old_g, old_b)
 
-        Additional coloring method. It picks a random value with hue and
-        saturation based on the color given to the generating function.
+## from "examples/colored_by_group.py"
+class simple_grouped_color_func(object):
+    """Create a color function object which assigns EXACT colors
+       to certain words based on the color to words mapping
 
-        Parameters
-        ----------
-        word, font_size, position, orientation  : ignored.
+       Parameters
+       ----------
+       color_to_words : dict(str -> list(str))
+         A dictionary that maps a color to the list of words.
 
-        random_state : random.Random object or None, (default=None)
-          If a random object is given, this is used for generating random
-          numbers.
+       default_color : str
+         Color that will be assigned to a word that's not a member
+         of any value from color_to_words.
+    """
 
-        """
-        return 'rgb({:.0f}, {:.0f}, {:.0f})'.format(old_r, old_g,
-                                                    old_b)
-    return single_color_func
+    def __init__(self, color_to_words, default_color):
+        self.word_to_color = {word: color
+                              for (color, words) in color_to_words.items()
+                              for word in words}
+
+        self.default_color = default_color
+
+    def __call__(self, word, **kwargs):
+        return self.word_to_color.get(word, self.default_color)
+
+
+## from "examples/colored_by_group.py"
+class grouped_color_func(object):
+    """Create a color function object which assigns DIFFERENT SHADES of
+       specified colors to certain words based on the color to words mapping.
+
+       Uses wordcloud.get_single_color_func
+
+       Parameters
+       ----------
+       color_to_words : dict(str -> list(str))
+         A dictionary that maps a color to the list of words.
+
+       default_color : str
+         Color that will be assigned to a word that's not a member
+         of any value from color_to_words.
+    """
+
+    def __init__(self, color_to_words, default_color):
+        self.color_func_to_words = [
+            (get_single_color_func(color), set(words))
+            for (color, words) in color_to_words.items()]
+
+        self.default_color_func = get_single_color_func(default_color)
+
+    def get_color_func(self, word):
+        """Returns a single_color_func associated with the word"""
+        try:
+            color_func = next(
+                color_func for (color_func, words) in self.color_func_to_words
+                if word in words)
+        except StopIteration:
+            color_func = self.default_color_func
+
+        return color_func
+
+    def __call__(self, word, **kwargs):
+        return self.get_color_func(word)(word, **kwargs)
 
 
 class WordCloud(object):
@@ -464,8 +507,6 @@ class WordCloud(object):
         else:
             font_size = max_font_size
 
-        # we set self.words_ here because we called generate_from_frequencies
-        # above... hurray for good design?
         self.words_ = dict(frequencies)
 
         if self.repeat and len(frequencies) < self.max_words:
@@ -507,18 +548,18 @@ class WordCloud(object):
                 # find possible places using integral image:
                 
                 ## edit
-                if tsne_plot != None:
-                    resu = tsne_plot[word]
-                    to_mul_x = width/maxX
-                    to_mul_y = height/maxY
-                    fix_state = (to_mul_x*resu[0],to_mul_y*resu[1]) # x
-                    result = occupancy.sample_position(box_size[1] + self.margin,
-                                                       box_size[0] + self.margin,
-                                                       fix_state)
-                else:
-                    result = occupancy.sample_position(box_size[1] + self.margin,
-                                                       box_size[0] + self.margin,
-                                                       random_state)
+                # if tsne_plot != None:
+                resu = tsne_plot[word]
+                to_mul_x = width/maxX
+                to_mul_y = height/maxY
+                fix_state = (to_mul_x*resu[0],to_mul_y*resu[1]) # x
+                result = occupancy.sample_position(box_size[1] + self.margin,
+                                                    box_size[0] + self.margin,
+                                                    fix_state)
+                # else:
+                #     result = occupancy.sample_position(box_size[1] + self.margin,
+                #                                        box_size[0] + self.margin,
+                #                                        random_state)
                 
                 if result is not None or font_size < self.min_font_size:
                     # either we found a place or font-size went too small
@@ -546,18 +587,18 @@ class WordCloud(object):
             positions.append((x, y))
             orientations.append(orientation)
             font_sizes.append(font_size)
-            if tsne_plot != None:
-                colors.append(self.color_func(word, font_size=font_size,
-                                              position=(x, y),
-                                              orientation=orientation,
-                                              random_state=None,
-                                              font_path=self.font_path))
-            else:
-                colors.append(self.color_func(word, font_size=font_size,
-                                              position=(x, y),
-                                              orientation=orientation,
-                                              random_state=random_state,
-                                              font_path=self.font_path))
+            # if tsne_plot != None:
+            colors.append(self.color_func(word, font_size=font_size,
+                                            position=(x, y),
+                                            orientation=orientation,
+                                            random_state=None,
+                                            font_path=self.font_path))
+            # else:
+            #     colors.append(self.color_func(word, font_size=font_size,
+            #                                   position=(x, y),
+            #                                   orientation=orientation,
+            #                                   random_state=random_state,
+            #                                   font_path=self.font_path))
             collect_font_size.append((word,font_size))
             
             # recompute integral image
@@ -578,7 +619,7 @@ class WordCloud(object):
         return self
 
     def process_text(self, text, lang='EN', most_common='60'):
-        """Splits a long text into words, eliminates the stopwords.
+        """Tokenization, a.k.a. splits a long text into words, eliminates the stopwords.
 
         Parameters
         ----------
@@ -589,9 +630,6 @@ class WordCloud(object):
         -------
         words : dict (string, int)
             Word tokens with associated frequency.
-
-        ..versionchanged:: 1.2.2
-            Changed return type from list of tuples to dict.
 
         Notes
         -----
@@ -774,9 +812,6 @@ class WordCloud(object):
             Word cloud image as numpy matrix.
         """
         return self.to_array()
-
-    def to_html(self):
-        raise NotImplementedError("FIXME!!!")
 
     def to_svg(self, embed_font=False, optimize_embedded_font=True, embed_image=False):
         """Export to SVG.
@@ -1087,18 +1122,17 @@ def generate_cluster_by_kmeans(focus_model, NUM_CLUSTERS, size_min, size_max):
 
 
 def generate_freq(focus_w_list, word_count_dic, focus_model, NUM_CLUSTERS, size_min, size_max):
-    df = pd.DataFrame(data={'word': focus_w_list,'cluster':generate_cluster_by_kmeans(focus_model,NUM_CLUSTERS,size_min,size_max)})
+    df = pd.DataFrame(data={'word': focus_w_list, 'cluster': generate_cluster_by_kmeans(focus_model,NUM_CLUSTERS,size_min,size_max)})
     df['word_count'] = df['word'].map(word_count_dic)
-    # dic = {}
     k_means_freq = []
     for i in range(NUM_CLUSTERS):
-        clus_i= df.loc[df['cluster'] == i]
+        clus_i = df.loc[df['cluster'] == i]
         clus_i['total'] = clus_i['word_count'].sum()
         clus_i_dict = {}
-        for index, row in clus_i.iterrows():
+        for _, row in clus_i.iterrows():
             clus_i_dict[row['word']] = row['word_count']/row['total']
         sorted_dict_i = sorted(clus_i_dict.items(), key=lambda item: item[1],reverse=True)[:10]
-        print(sorted_dict_i)
+        # print(sorted_dict_i)
         lst = []
         for k,v in sorted_dict_i:
             lst.append((k,v))
@@ -1141,67 +1175,3 @@ def generate_cloud(font_path, freq, max_font, fix_width, fix_height):
     plt.show()
     return lis
 
-## from "examples/colored_by_group.py"
-
-class SimpleGroupedColorFunc(object):
-    """Create a color function object which assigns EXACT colors
-       to certain words based on the color to words mapping
-
-       Parameters
-       ----------
-       color_to_words : dict(str -> list(str))
-         A dictionary that maps a color to the list of words.
-
-       default_color : str
-         Color that will be assigned to a word that's not a member
-         of any value from color_to_words.
-    """
-
-    def __init__(self, color_to_words, default_color):
-        self.word_to_color = {word: color
-                              for (color, words) in color_to_words.items()
-                              for word in words}
-
-        self.default_color = default_color
-
-    def __call__(self, word, **kwargs):
-        return self.word_to_color.get(word, self.default_color)
-
-
-
-class GroupedColorFunc(object):
-    """Create a color function object which assigns DIFFERENT SHADES of
-       specified colors to certain words based on the color to words mapping.
-
-       Uses wordcloud.get_single_color_func
-
-       Parameters
-       ----------
-       color_to_words : dict(str -> list(str))
-         A dictionary that maps a color to the list of words.
-
-       default_color : str
-         Color that will be assigned to a word that's not a member
-         of any value from color_to_words.
-    """
-
-    def __init__(self, color_to_words, default_color):
-        self.color_func_to_words = [
-            (get_single_color_func(color), set(words))
-            for (color, words) in color_to_words.items()]
-
-        self.default_color_func = get_single_color_func(default_color)
-
-    def get_color_func(self, word):
-        """Returns a single_color_func associated with the word"""
-        try:
-            color_func = next(
-                color_func for (color_func, words) in self.color_func_to_words
-                if word in words)
-        except StopIteration:
-            color_func = self.default_color_func
-
-        return color_func
-
-    def __call__(self, word, **kwargs):
-        return self.get_color_func(word)(word, **kwargs)

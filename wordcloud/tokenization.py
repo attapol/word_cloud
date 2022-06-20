@@ -140,11 +140,11 @@ def process_tokens(words, normalize_plurals=True):
     return fused_cases, standard_cases
 
 
-def word_tokenize(text: str, custom_dict: Trie = None, keep_whitespace: bool = True):
+def word_tokenize(text: str, custom_dict: Trie = None, keep_whitespace=True):
 
     """
     Word tokenizer.
-    (override from PyThaiNLP.)
+    (override from PyThaiNLP.word_tokenize)
 
     Tokenizes running text into words (list of strings).
 
@@ -159,8 +159,6 @@ def word_tokenize(text: str, custom_dict: Trie = None, keep_whitespace: bool = T
 
     if not text or not isinstance(text, str):
         return []
-
-    segments = []
     
     from pythainlp.tokenize.newmm import segment
 
