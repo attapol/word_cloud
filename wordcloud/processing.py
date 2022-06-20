@@ -17,7 +17,14 @@ from pythainlp import word_vector
 
 def embed_w2v(word_counts):
     """
-    return: DataFrame of word vector, row index = vocab
+    Parameters
+    ----------
+    word_counts : dict from string to float
+        A contains words and associated frequency.
+    
+    Returns
+    -------
+    DataFrame of word vector, row index = vocab
     """
 
     words = word_counts.keys()
