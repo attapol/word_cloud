@@ -1121,7 +1121,7 @@ def generate_cluster_by_kmeans(focus_model, NUM_CLUSTERS, size_min, size_max):
     return grouped
 
 
-def generate_freq(focus_w_list, word_count_dic, focus_model, NUM_CLUSTERS, size_min, size_max):
+def generate_kmeans_frequencies(focus_w_list, word_count_dic, focus_model, NUM_CLUSTERS, size_min, size_max):
     df = pd.DataFrame(data={'word': focus_w_list, 'cluster': generate_cluster_by_kmeans(focus_model,NUM_CLUSTERS,size_min,size_max)})
     df['word_count'] = df['word'].map(word_count_dic)
     k_means_freq = []
@@ -1139,9 +1139,9 @@ def generate_freq(focus_w_list, word_count_dic, focus_model, NUM_CLUSTERS, size_
         k_means_freq.append((i,lst))
     return k_means_freq
 
-def generate_cloud(font_path, freq, max_font, fix_width, fix_height):
+def generate_kmeans_cloud(font_path, freq, max_font, fix_width, fix_height):
     lis = []
-    topics2 = freq
+    topics = freq
     clouds = []
     for i in range(6):
         cloud = WordCloud(font_path = font_path,stopwords=gensim.parsing.preprocessing.STOPWORDS,
@@ -1161,7 +1161,7 @@ def generate_cloud(font_path, freq, max_font, fix_width, fix_height):
             
         fig2.tight_layout(rect=[0, 0.03, 1, 0.95])
             
-        topic_words = dict(topics2[i][1])
+        topic_words = dict(topics[i][1])
         clouds[i].generate_from_frequencies(topic_words, max_font_size= max_font) # set topic
         lis.append(clouds[i])
         plt.gca().imshow(clouds[i],aspect="auto",interpolation = "bilinear")  # blur it right here
