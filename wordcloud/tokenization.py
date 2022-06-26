@@ -4,7 +4,7 @@ from collections import defaultdict
 from itertools import tee
 from math import log
 from operator import itemgetter
-from pythainlp.util.trie import Trie, dict_trie
+from pythainlp.util.trie import Trie
 
 
 def l(k, n, x):  # noqa: E741, E743

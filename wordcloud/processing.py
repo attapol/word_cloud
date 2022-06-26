@@ -1,45 +1,65 @@
 import math
 
-import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.manifold import TSNE
 
-plt.style.use('ggplot')
-import matplotlib.font_manager as fm
-import numpy as np
+# import matplotlib.pyplot as plt
+# plt.style.use('ggplot')
+# import matplotlib.font_manager as fm
+# import numpy as np
+
 #embedding EN
-from gensim.models import KeyedVectors, word2vec
-from gensim.scripts.glove2word2vec import glove2word2vec
-from gensim.test.utils import datapath, get_tmpfile
+# from gensim.models import KeyedVectors, word2vec
+# from gensim.scripts.glove2word2vec import glove2word2vec
+# from gensim.test.utils import datapath, get_tmpfile
+
 #embedding TH
 from pythainlp import word_vector
 
 
-def embed_w2v(word_counts):
+def embed_w2v(word_counts, lang='TH'):
     """
     Parameters
     ----------
     word_counts : dict from string to float
-        A contains words and associated frequency.
+        contains words and associated frequency.
+
+    lang : str, default = 'TH'
+        language of input words, can be 'TH' or 'EN'
     
     Returns
     -------
     DataFrame of word vector, row index = vocab
     """
-
     words = word_counts.keys()
-    model = word_vector.get_model()
-    thai2dict = {}
+
+    if lang=='TH':
+      model = word_vector.get_model()
+    else:
+      import gensim.downloader as api
+      model = api.load('glove-wiki-gigaword-300')
+
+    word2dict = {}
     for word in words:
       if word in model.index_to_key:
-        thai2dict[word] = model[word]
-    thai2vec = pd.DataFrame.from_dict(thai2dict,orient='index')
-    return thai2vec
+        word2dict[word] = model[word]
+    word2vec = pd.DataFrame.from_dict(word2dict,orient='index')
+    return word2vec
 
 
 def plot_TSNE(model,labels=None, lang='TH'):
     """
-    model is a DataFrame whose row index is the vocab
+    Parameters
+    ----------
+    model : DataFrame of word vector
+        dataframe of word vector, row index is the vocab.
+
+    lang : str, default = 'TH'
+        language of input words, can be 'TH' or 'EN'
+    
+    Returns
+    -------
+    Dict from str to tuple, contains coordinates of words.
     """
     labels = model.index.tolist()
     tokens = model.to_numpy()
@@ -81,9 +101,9 @@ def plot_TSNE(model,labels=None, lang='TH'):
         x.append(value[0] + x_fab)
         y.append(value[1] + y_fab)
 
-    dic = {}
-    for i in range(len(x)):
-        dic[labels[i]] = (x[i],y[i])
+    dic = {labels[i]:(x[i],y[i]) for i in range(len(x))}
+    # for i in range(len(x)):
+    #     dic[labels[i]] = (x[i],y[i])
     return dic
 
 
