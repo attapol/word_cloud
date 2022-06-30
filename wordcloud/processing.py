@@ -21,7 +21,7 @@ def embed_w2v(word_counts, lang='TH'):
     """
     Parameters
     ----------
-    word_counts : dict from string to float
+    word_counts : dict from str to float
         contains words and associated frequency.
 
     lang : str, default = 'TH'
@@ -29,7 +29,7 @@ def embed_w2v(word_counts, lang='TH'):
     
     Returns
     -------
-    DataFrame of word vector, row index = vocab
+    List of tuples of word and word vector ((str, list of float))
     """
     words = word_counts.keys()
 
@@ -39,30 +39,40 @@ def embed_w2v(word_counts, lang='TH'):
       import gensim.downloader as api
       model = api.load('glove-wiki-gigaword-300')
 
-    word2dict = {}
-    for word in words:
-      if word in model.index_to_key:
-        word2dict[word] = model[word]
-    word2vec = pd.DataFrame.from_dict(word2dict,orient='index')
-    return word2vec
+    # word2dict = {}
+    # for word in words:
+    #   if word in model.index_to_key:
+    #     word2dict[word] = model[word]
+    # word2vec = pd.DataFrame.from_dict(word2dict,orient='index')
+    word2vecs = [(word, model[word]) for word in words if word in model.index_to_key]
+
+    return word2vecs
 
 
 def plot_TSNE(model,labels=None, lang='TH'):
     """
     Parameters
     ----------
-    model : DataFrame of word vector
-        dataframe of word vector, row index is the vocab.
+    model : gensim.models.KeyedVector or list of tuple of (str, list[str])
+        word vector model (must come with 'labels') or list of tuple of word and word vectors (no 'labels' needed)
+
+    labels : list of str (optional)
+        words that we focused on; only in case of the 'model' is a whole word vector model.
 
     lang : str, default = 'TH'
         language of input words, can be 'TH' or 'EN'
     
     Returns
     -------
-    Dict from str to tuple, contains coordinates of words.
+    Dict from str to tuple of floats, contains coordinates of words.
     """
-    labels = model.index.tolist()
-    tokens = model.to_numpy()
+    if labels is None:
+      # labels = model.index.tolist()
+      # tokens = model.to_numpy()
+      labels = list(map(lambda x: x[0], model))
+      tokens = list(map(lambda x: x[1], model))
+    else:
+      tokens = [model[word] for word in labels]
 
 
     if lang=='TH':
@@ -76,7 +86,7 @@ def plot_TSNE(model,labels=None, lang='TH'):
     new_values = tsne_model.fit_transform(tokens)
 
     x = []
-    y = []                
+    y = []               
     min_x = 0
     max_x = 0
     min_y = 0
