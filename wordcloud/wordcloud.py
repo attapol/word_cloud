@@ -107,7 +107,10 @@ def get_single_color_func(color):
     """
     old_r, old_g, old_b = ImageColor.getrgb(color)
 
-    return 'rgb({:.0f}, {:.0f}, {:.0f})'.format(old_r, old_g, old_b)
+    def single_color_func(word=None, font_size=None, position=None,orientation=None, font_path=None, random_state=None):
+        return 'rgb({:.0f}, {:.0f}, {:.0f})'.format(old_r, old_g, old_b)
+    
+    return single_color_func
 
 ## from "examples/colored_by_group.py"
 class simple_grouped_color_func(object):
