@@ -36,6 +36,10 @@ FILE = os.path.dirname(__file__)
 FONT_PATH = os.environ.get('FONT_PATH', os.path.join(FILE, 'DroidSansMono.ttf'))
 STOPWORDS = set(map(str.strip, open(os.path.join(FILE, 'stopwords')).readlines()))
 STOPWORDS_TH = set(map(str.strip, open(os.path.join(FILE, 'thstopwords')).readlines()))
+# STOPWORDS_TH = set(open(os.path.join(FILE, 'thstopwords')).readlines())
+STOPWORDS_TH.add(' ')
+STOPWORDS_TH.add('  ')
+STOPWORDS_TH.add('\n')
 
 
 
@@ -436,7 +440,6 @@ class WordCloud(object):
         if tsne_plot == None:
             tsne_plot = plot_TSNE(embed_w2v(frequencies,lang=lang), lang=lang)
         
-
         maxX = 0
         maxY = 0
         for ind in tsne_plot.values():
@@ -618,11 +621,11 @@ class WordCloud(object):
         self.layout_ = list(zip(frequencies, font_sizes, positions,
                                 orientations, colors))
         ## edit
-        print(collect_font_size)
+        # print(collect_font_size)
         
         return self
 
-    def process_text(self, text, lang='TH', most_common='60'):
+    def process_text(self, text, lang='TH', most_common=60):
         """Tokenization, a.k.a. splits a long text into words, eliminates the stopwords.
 
         Parameters
@@ -640,11 +643,17 @@ class WordCloud(object):
         There are better ways to do word tokenization, but I don't want to
         include all those things.
         """
+
         if lang == 'TH':
             stopwords = set([i for i in self.stopwordsth])
-            words = word_tokenize(text)
+            if type(text) is str:
+                words = word_tokenize(text)
+            else:
+                words = []
+                for t in text:
+                    words.extend(word_tokenize(t))
             words = [word for word in words if word not in stopwords and word.isnumeric() == False]
-            word_counter = Counter((word for word in words)).most_common(most_common)
+            word_counter = Counter(words).most_common(most_common)
             word_counts = dict(word_counter)
 
         elif lang == 'EN':
