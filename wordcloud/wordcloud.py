@@ -33,13 +33,10 @@ from tokenization import process_tokens, unigrams_and_bigrams, word_tokenize
 from processing import plot_TSNE, embed_w2v
 
 FILE = os.path.dirname(__file__)
-FONT_PATH = os.environ.get('FONT_PATH', os.path.join(FILE, 'DroidSansMono.ttf'))
+# FONT_PATH = os.environ.get('FONT_PATH', os.path.join(FILE, 'DroidSansMono.ttf'))
+FONT_PATH = os.environ.get('FONT_PATH', os.path.join(FILE, 'THSarabun.ttf'))
 STOPWORDS = set(map(str.strip, open(os.path.join(FILE, 'stopwords')).readlines()))
 STOPWORDS_TH = set(map(str.strip, open(os.path.join(FILE, 'thstopwords')).readlines()))
-# STOPWORDS_TH = set(open(os.path.join(FILE, 'thstopwords')).readlines())
-STOPWORDS_TH.add(' ')
-STOPWORDS_TH.add('  ')
-STOPWORDS_TH.add('\n')
 
 
 
@@ -652,7 +649,7 @@ class WordCloud(object):
                 words = []
                 for t in text:
                     words.extend(word_tokenize(t))
-            words = [word for word in words if word not in stopwords and word.isnumeric() == False]
+            words = [word for word in words if word not in stopwords and word.isspace() is False and word.isnumeric() == False]
             word_counter = Counter(words).most_common(most_common)
             word_counts = dict(word_counter)
 
@@ -1134,9 +1131,9 @@ def generate_cluster_by_kmeans(focus_model, NUM_CLUSTERS, size_min, size_max):
     return grouped
 
 
-def generate_kmeans_frequencies(focus_w_list, word_count_dic, focus_model, NUM_CLUSTERS, size_min, size_max):
-    df = pd.DataFrame(data={'word': focus_w_list, 'cluster': generate_cluster_by_kmeans(focus_model,NUM_CLUSTERS,size_min,size_max)})
-    df['word_count'] = df['word'].map(word_count_dic)
+def generate_kmeans_frequencies(wordlist, word_count, focus_model, NUM_CLUSTERS, size_min, size_max):
+    df = pd.DataFrame(data={'word': wordlist, 'cluster': generate_cluster_by_kmeans(focus_model,NUM_CLUSTERS,size_min,size_max)})
+    df['word_count'] = df['word'].map(word_count)
     k_means_freq = []
     for i in range(NUM_CLUSTERS):
         clus_i = df.loc[df['cluster'] == i]
@@ -1157,7 +1154,7 @@ def generate_kmeans_cloud(font_path, freq, max_font, fix_width, fix_height):
     topics = freq
     clouds = []
     for i in range(6):
-        cloud = WordCloud(font_path = font_path,stopwords=gensim.parsing.preprocessing.STOPWORDS,
+        cloud = WordCloud(font_path = font_path,
                         background_color='white',
                         width=fix_width,
                         height=fix_height,
