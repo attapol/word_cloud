@@ -12,6 +12,7 @@ from sklearn.manifold import TSNE
 # from gensim.models import KeyedVectors, word2vec
 # from gensim.scripts.glove2word2vec import glove2word2vec
 # from gensim.test.utils import datapath, get_tmpfile
+import gensim.downloader as api
 
 #embedding TH
 from pythainlp import word_vector
@@ -36,7 +37,6 @@ def embed_w2v(word_counts, lang='TH'):
     if lang=='TH':
       model = word_vector.get_model()
     else:
-      import gensim.downloader as api
       model = api.load('glove-wiki-gigaword-300')
 
     # word2dict = {}
@@ -67,8 +67,6 @@ def plot_TSNE(model,labels=None, lang='TH'):
     Dict from str to tuple of floats, contains coordinates of words.
     """
     if labels is None:
-      # labels = model.index.tolist()
-      # tokens = model.to_numpy()
       labels = list(map(lambda x: x[0], model))
       tokens = list(map(lambda x: x[1], model))
     else:
@@ -112,8 +110,7 @@ def plot_TSNE(model,labels=None, lang='TH'):
         y.append(value[1] + y_fab)
 
     dic = {labels[i]:(x[i],y[i]) for i in range(len(x))}
-    # for i in range(len(x)):
-    #     dic[labels[i]] = (x[i],y[i])
+    
     return dic
 
 
